@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SIPKADES — Sistem Informasi Penilaian Kinerja Aparatur Desa</title>
-  <meta name="description" content="SIPKADES — SIP penilaian kinerja aparatur desa. 360° appraisal, multi-role, upload absen, export Excel." />
+  <title>SIPKADES v1.3 — Sistem Informasi Penilaian Kinerja Aparatur Desa</title>
+  <meta name="description" content="SIPKADES v1.3 - Login/Register (LocalStorage), role-based dashboard, 360° appraisal, upload absen, export Excel." />
   <style>
     :root{
       --bg:#f5f7fb; --card:#ffffff; --muted:#586069; --accent:#0b63d6; --accent-2:#03204a;
@@ -12,17 +12,17 @@
     }
     *{box-sizing:border-box}
     body{font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial; margin:0; background:linear-gradient(180deg,var(--bg),#eef3fb); color:#0b1620;}
-    .wrap{max-width:1100px;margin:28px auto;padding:20px}
-    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+    .wrap{max-width:1100px;margin:24px auto;padding:18px}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
     .brand{display:flex;gap:12px;align-items:center}
     .logo-img{width:64px;height:64px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:var(--shadow)}
     h1{font-size:18px;margin:0}
     p.lead{margin:0;color:var(--muted);font-size:13px}
-    main{display:grid;grid-template-columns:1fr 380px;gap:18px}
+    main{display:grid;grid-template-columns:1fr 380px;gap:14px}
     @media (max-width:980px){main{grid-template-columns:1fr} .sidebar{order:2}}
-    .card{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);margin-bottom:12px}
+    .card{background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);margin-bottom:12px}
     label{display:block;font-size:13px;margin-bottom:6px;color:#0b1724}
-    input, select, textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #e6edf7;background:#fbfdff}
+    input, select, textarea, button{width:100%;padding:10px;border-radius:8px;border:1px solid #e6edf7;background:#fbfdff}
     .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:0;background:var(--accent);color:#fff;font-weight:600;cursor:pointer}
     .btn.ghost{background:transparent;color:var(--accent);border:1px solid rgba(11,99,214,0.12)}
     table{width:100%;border-collapse:collapse;font-size:13px}
@@ -33,8 +33,12 @@
     .role-pill{padding:6px 10px;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;font-weight:700;font-size:13px}
     .flex{display:flex;gap:10px;align-items:center}
     .right{text-align:right}
+    .topright{display:flex;gap:8px;align-items:center}
     .modal{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(2,6,23,0.6);display:flex;align-items:center;justify-content:center;padding:20px;z-index:9999}
     .modal .card{max-width:900px;width:100%}
+    .inline{display:inline-block;width:auto}
+    input[type=file]{padding:6px}
+    .user-list{max-height:160px;overflow:auto}
   </style>
 </head>
 <body>
@@ -47,26 +51,48 @@
           <p class="lead">Sistem Informasi Penilaian Kinerja Aparatur Desa — Desa Keling</p>
         </div>
       </div>
-      <div>
+      <div class="topright">
         <div id="loggedAs" class="small right">Belum login</div>
+        <button id="logoutBtn" class="btn ghost" style="display:none;margin-left:8px;width:auto">Logout</button>
       </div>
     </header>
 
-    <main>
-      <section id="leftCol">
-        <div class="card" id="loginCard">
-          <strong>Login Sederhana (Pilih Peran)</strong>
-          <div class="small">Login demo tanpa server — digunakan untuk memilih tampilan per-peran.</div>
-          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-            <button class="btn" id="btnBumdes">Masuk sebagai BUMDes</button>
-            <button class="btn" id="btnPemdes">Masuk sebagai Pemdes</button>
-            <button class="btn" id="btnBPD">Masuk sebagai BPD</button>
-            <button class="btn ghost" id="btnLogout">Keluar</button>
+    <!-- Login / Register area -->
+    <div id="authArea">
+      <div class="card" id="loginCard">
+        <strong>Halaman Login</strong>
+        <div class="small">Masuk dengan akun yang terdaftar.</div>
+        <div style="margin-top:8px">
+          <label>Username</label><input id="loginUser" type="text" />
+          <label style="margin-top:8px">Password</label><input id="loginPass" type="password" />
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button id="doLogin" class="btn">Masuk</button>
+            <button id="showRegister" class="btn ghost">Daftar (Admin Awal jika belum ada akun)</button>
           </div>
         </div>
+      </div>
 
-        <div class="card" id="mainApp" style="display:none">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="card" id="registerCard" style="display:none">
+        <strong>Registrasi Akun</strong>
+        <div class="small" id="regHelp">Jika belum ada akun, buat akun Admin awal. Setelah ada Admin, pendaftaran hanya dapat dilakukan oleh Admin melalui menu Pengguna.</div>
+        <div style="margin-top:8px">
+          <label>Username</label><input id="regUser" type="text" />
+          <label style="margin-top:8px">Password</label><input id="regPass" type="password" />
+          <label style="margin-top:8px">Peran</label>
+          <select id="regRole"><option value="bumdes">BUMDes</option><option value="pemdes">Pemdes</option><option value="bpd">BPD</option><option value="admin">Admin</option></select>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button id="doRegister" class="btn">Daftar</button>
+            <button id="hideRegister" class="btn ghost">Batal</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main App -->
+    <main id="appMain" style="display:none">
+      <section id="leftCol">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
             <div><strong id="panelTitle">Panel</strong><div class="small" id="panelSub">Kelola pegawai & penilaian</div></div>
             <div class="role-pill" id="rolePill">-</div>
           </div>
@@ -155,6 +181,18 @@
 
           <hr style="margin:12px 0" />
           <div>
+            <strong>Pengguna (Admin)</strong>
+            <div class="small">Hanya Admin yang dapat mengelola akun pengguna.</div>
+            <div style="margin-top:8px" id="userControls">
+              <div class="user-list" id="userList"></div>
+              <div style="display:flex;gap:8px;margin-top:8px">
+                <button id="btnCreateUser" class="btn ghost">Tambah Pengguna (Admin)</button>
+              </div>
+            </div>
+          </div>
+
+          <hr style="margin:12px 0" />
+          <div>
             <strong>Ekspor & Project</strong>
             <div class="small" style="margin-top:8px">Export data & slip ke Excel. Download project ZIP siap upload GitHub.</div>
             <div style="display:flex;gap:8px;margin-top:8px">
@@ -174,7 +212,7 @@
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
 <script>
-// Full interactive JS for SIPKADES v1.1
+// SIPKADES v1.3 - Login/Register using LocalStorage, role based UI
 (() => {
   // roles and positions
   const roles = {
@@ -191,21 +229,30 @@
     {key:'self',label:'Self Assessment',weight:20}
   ];
 
-  // state
-  const stateKey = 'sipkades_v1_state';
-  let state = {role:'guest', weights:defaultWeights, employees:[]};
+  const STORAGE_KEY = 'sipkades_v1.3_state';
+  let state = {users:[], currentUser:null, employees:[], weights: defaultWeights};
 
-  // DOM
+  // DOM refs
   const logoImg = document.getElementById('logoImg');
   const loggedAs = document.getElementById('loggedAs');
+  const logoutBtn = document.getElementById('logoutBtn');
   const rolePill = document.getElementById('rolePill');
   const panelTitle = document.getElementById('panelTitle');
-  const btnBumdes = document.getElementById('btnBumdes');
-  const btnPemdes = document.getElementById('btnPemdes');
-  const btnBPD = document.getElementById('btnBPD');
-  const btnLogout = document.getElementById('btnLogout');
-  const mainApp = document.getElementById('mainApp');
+
+  const authArea = document.getElementById('authArea');
   const loginCard = document.getElementById('loginCard');
+  const registerCard = document.getElementById('registerCard');
+  const loginUser = document.getElementById('loginUser');
+  const loginPass = document.getElementById('loginPass');
+  const doLogin = document.getElementById('doLogin');
+  const showRegister = document.getElementById('showRegister');
+  const hideRegister = document.getElementById('hideRegister');
+  const doRegister = document.getElementById('doRegister');
+  const regUser = document.getElementById('regUser');
+  const regPass = document.getElementById('regPass');
+  const regRole = document.getElementById('regRole');
+
+  const appMain = document.getElementById('appMain');
   const roleSelect = document.getElementById('roleSelect');
   const ratersArea = document.getElementById('ratersArea');
   const employeesTable = document.querySelector('#employeesTable tbody');
@@ -214,44 +261,102 @@
   const weightsArea = document.getElementById('weights');
   const attendanceFile = document.getElementById('attendanceFile');
   const slipPreview = document.getElementById('slipPreview');
+  const userList = document.getElementById('userList');
+  const btnCreateUser = document.getElementById('btnCreateUser');
 
-  // load / save
-  function load(){ try{ const s = localStorage.getItem(stateKey); if(s) state = JSON.parse(s); }catch(e){} }
-  function save(){ localStorage.setItem(stateKey, JSON.stringify(state)); }
+  // load / save state
+  function loadState(){ try{ const s = localStorage.getItem(STORAGE_KEY); if(s) state = JSON.parse(s); }catch(e){} }
+  function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
 
-  // login handlers
-  btnBumdes.addEventListener('click', ()=>login('bumdes'));
-  btnPemdes.addEventListener('click', ()=>login('pemdes'));
-  btnBPD.addEventListener('click', ()=>login('bpd'));
-  btnLogout.addEventListener('click', ()=>logout());
-
-  function login(roleKey){
-    state.role = roleKey;
-    renderForRole();
-    save();
-  }
-  function logout(){
-    state.role = 'guest';
-    renderForRole();
-    save();
+  // helper: simple hash password using SubtleCrypto (SHA-256) then hex
+  async function hashPassword(password){
+    const enc = new TextEncoder();
+    const data = enc.encode(password);
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    const arr = Array.from(new Uint8Array(hash));
+    return arr.map(b=>b.toString(16).padStart(2,'0')).join('');
   }
 
-  function renderForRole(){
-    if(state.role === 'guest'){
-      mainApp.style.display = 'none'; loginCard.style.display = 'block'; logoImg.src = 'logo_bumdes.png'; loggedAs.textContent = 'Belum login'; return;
+  // user utilities
+  async function createUser(username, password, role){
+    const exists = state.users.find(u=>u.username === username);
+    if(exists) throw new Error('Username sudah ada');
+    const hp = await hashPassword(password);
+    const user = {id: Date.now(), username, passwordHash: hp, role};
+    state.users.push(user); saveState(); return user;
+  }
+  function findUser(username){ return state.users.find(u=>u.username === username); }
+
+  async function initDefault(){
+    // if no users, create default admin: admin / admin123 (inform user to change)
+    if(!state.users || state.users.length === 0){
+      try{
+        await createUser('admin', 'admin123', 'admin');
+        console.log('Default admin created: admin / admin123');
+      }catch(e){ console.warn(e); }
     }
-    loginCard.style.display = 'none'; mainApp.style.display = 'block';
-    const r = roles[state.role];
-    logoImg.src = r.logo;
-    loggedAs.textContent = 'Masuk sebagai: ' + r.label;
-    rolePill.textContent = r.label;
-    panelTitle.textContent = 'Panel: ' + r.label;
-    // populate positions
-    roleSelect.innerHTML = r.positions.map(p=>`<option>${p}</option>`).join('');
-    // render rater forms & weights & employees
-    renderWeights();
-    renderRaterForms();
-    renderEmployees();
+  }
+
+  // auth actions
+  doLogin.addEventListener('click', async ()=>{
+    const u = loginUser.value.trim();
+    const p = loginPass.value;
+    if(!u || !p){ alert('Isi username & password'); return; }
+    const user = findUser(u);
+    if(!user){ alert('Pengguna tidak ditemukan'); return; }
+    const hp = await hashPassword(p);
+    if(hp !== user.passwordHash){ alert('Password salah'); return; }
+    state.currentUser = {id:user.id, username:user.username, role:user.role};
+    saveState(); renderAppForUser();
+  });
+
+  showRegister.addEventListener('click', ()=>{
+    // only allow initial register if no users exist
+    if(state.users.length === 0){ registerCard.style.display = 'block'; loginCard.style.display='none'; }
+    else { alert('Pendaftaran hanya dapat dilakukan oleh Admin setelah akun Admin awal dibuat. Silakan hubungi Admin.'); }
+  });
+  hideRegister.addEventListener('click', ()=>{ registerCard.style.display='none'; loginCard.style.display='block'; });
+
+  doRegister.addEventListener('click', async ()=>{
+    const u = regUser.value.trim(); const p = regPass.value; const r = regRole.value;
+    if(!u || !p){ alert('Isi username & password'); return; }
+    try{
+      await createUser(u,p,r);
+      alert('Akun berhasil dibuat. Silakan login.');
+      regUser.value=''; regPass.value=''; regRole.value='bumdes';
+      registerCard.style.display='none'; loginCard.style.display='block';
+    }catch(e){
+      alert('Gagal membuat akun: ' + e.message);
+    }
+  });
+
+  logoutBtn.addEventListener('click', ()=>{ state.currentUser = null; saveState(); renderAppForUser(); });
+
+  // render app per role
+  function renderAppForUser(){
+    loadState();
+    if(!state.currentUser){ // show login
+      authArea.style.display = 'block'; appMain.style.display='none'; logoutBtn.style.display='none';
+      document.getElementById('loginCard').style.display = 'block'; document.getElementById('registerCard').style.display='none';
+      loggedAs.textContent = 'Belum login';
+      logoImg.src = 'logo_bumdes.png';
+      return;
+    }
+    // show main app
+    authArea.style.display = 'none'; appMain.style.display='block'; logoutBtn.style.display='inline-block';
+    loggedAs.textContent = 'Masuk sebagai: ' + state.currentUser.username + ' (' + state.currentUser.role + ')';
+    const roleKey = state.currentUser.role;
+    const roleObj = roles[roleKey] || roles['pemdes'];
+    logoImg.src = roleObj.logo;
+    rolePill.textContent = roleObj.label;
+    panelTitle.textContent = 'Panel: ' + roleObj.label;
+    // show/hide user controls depending on admin
+    document.getElementById('userControls').style.display = (state.currentUser.role === 'admin') ? 'block' : 'none';
+    // populate roleSelect options for posting employees depending on role
+    roleSelect.innerHTML = roleObj.positions.map(p=>`<option>${p}</option>`).join('');
+    // render weights, raters, employees
+    renderWeights(); renderRaterForms(); renderEmployees();
+    renderUserList();
   }
 
   function renderWeights(){
@@ -264,15 +369,14 @@
       weightsArea.appendChild(row);
     }
   }
-
   document.getElementById('saveWeights').addEventListener('click', ()=>{
     const inputs = weightsArea.querySelectorAll('input[data-weight-key]');
     let sum = 0; const neww = {};
     inputs.forEach(i=>{ const k=i.getAttribute('data-weight-key'); neww[k]=Number(i.value); sum+=Number(i.value); });
     if(sum !== 100){ alert('Total bobot harus 100% (saat ini: ' + sum + '%)'); return; }
-    state.weights = neww; save(); renderRaterForms(); alert('Bobot tersimpan.'); renderEmployees();
+    state.weights = neww; saveState(); renderRaterForms(); alert('Bobot tersimpan.'); renderEmployees();
   });
-  document.getElementById('resetWeights').addEventListener('click', ()=>{ state.weights = Object.assign({}, defaultWeights); save(); renderWeights(); renderRaterForms(); });
+  document.getElementById('resetWeights').addEventListener('click', ()=>{ state.weights = Object.assign({}, defaultWeights); saveState(); renderWeights(); renderRaterForms(); });
 
   function renderRaterForms(){
     ratersArea.innerHTML = '';
@@ -357,7 +461,7 @@
 
     // add to state and persist
     state.employees.push(emp);
-    save();
+    saveState();
     clearForm();
     renderEmployees();
     alert('Pegawai disimpan.');
@@ -462,24 +566,51 @@
 
   document.getElementById('downloadZip').addEventListener('click', async ()=>{
     const zip = new JSZip();
-    // include core files
     const html = `<!doctype html>\n` + document.documentElement.outerHTML;
     zip.file('index.html', html);
-    zip.file('README.md', '# SIPKADES v1.1\\nExport generated from browser (trimmed index).');
+    zip.file('README.md', '# SIPKADES v1.3\\nExport generated from browser (trimmed index).');
     alert('ZIP dibuat dan diunduh (berisi index.html).');
     const content = await zip.generateAsync({type:'blob'});
     const url = URL.createObjectURL(content);
-    const a = document.createElement('a'); a.href = url; a.download = 'SIPKADES_v1.1.zip'; a.click(); URL.revokeObjectURL(url);
+    const a = document.createElement('a'); a.href = url; a.download = 'SIPKADES_v1.3.zip'; a.click(); URL.revokeObjectURL(url);
   });
 
   function generateSlip(list){ exportEmployees(list); }
 
-  // init load state and render
-  load();
-  renderForRole();
+  // User management (Admin)
+  btnCreateUser.addEventListener('click', ()=>{
+    if(!(state.currentUser && state.currentUser.role === 'admin')){ alert('Hanya Admin yang dapat membuat pengguna.'); return; }
+    const username = prompt('Masukkan username baru (misal: bumdes01):'); if(!username) return;
+    const password = prompt('Masukkan password untuk user '+username+':'); if(!password) return;
+    const role = prompt('Masukkan role (bumdes/pemdes/bpd/admin):','bumdes'); if(!role) return;
+    createUser(username, password, role).then(u=>{ alert('Pengguna dibuat: ' + u.username); renderUserList(); }).catch(e=>alert('Gagal: '+e.message));
+  });
 
-  // expose state for debugging in console
+  function renderUserList(){
+    userList.innerHTML = '';
+    for(const u of state.users || []){
+      const div = document.createElement('div');
+      div.style.display='flex'; div.style.justifyContent='space-between'; div.style.alignItems='center'; div.style.padding='6px 0'; div.style.borderBottom='1px solid #f1f5f9';
+      div.innerHTML = `<div><strong>${u.username}</strong><div class="small">Role: ${u.role}</div></div><div style="display:flex;gap:6px"><button class="btn ghost" data-usr="${u.username}">Hapus</button></div>`;
+      userList.appendChild(div);
+      div.querySelector('button').addEventListener('click', ()=>{ if(confirm('Hapus pengguna '+u.username+'?')){ state.users = state.users.filter(x=>x.username!==u.username); saveState(); renderUserList(); } });
+    }
+  }
+
+  // init default admin if none exist
+  async function bootstrap(){
+    loadState();
+    if(!state.users || state.users.length===0){
+      try{ await createUser('admin','admin123','admin'); alert('Akun admin default dibuat: username=admin password=admin123. Silakan login dan ubah password.'); }catch(e){ console.warn(e); }
+      saveState();
+    }
+    renderAppForUser();
+  }
+
+  // expose for debugging
   window._SIPKADES_STATE = state;
+
+  bootstrap();
 
 })();
 </script>

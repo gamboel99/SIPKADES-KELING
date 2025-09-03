@@ -1,19 +1,15 @@
 
-# SIPKADES v1.1
+# SIPKADES v1.3
 SIPKADES — Sistem Informasi Penilaian Kinerja Aparatur Desa (Desa Keling).
 Single-file static web app (index.html) + assets; dapat di-deploy di GitHub Pages / Vercel (static).
 
-Fitur utama:
-- Login demo per peran: BUMDes, Pemdes, BPD
-- Penilaian 360° (Atasan, Rekan, Bawahan, Self)
-- Unggah rekap kehadiran (Excel/CSV) untuk memvalidasi aspek Disiplin
-- Export data & slip gaji ke Excel (.xlsx)
-- Download project ZIP
+Fitur utama v1.3:
+- Login (username/password) dengan LocalStorage
+- Registrasi admin awal jika belum ada user (default admin created)
+- Admin dapat membuat/hapus pengguna
+- Role-based dashboard (BUMDes, Pemdes, BPD, Admin)
+- Penilaian 360°, unggah rekap kehadiran (Excel/CSV), export slip & data ke Excel
 
-Instruksi singkat:
-1. Unggah seluruh folder ke repository GitHub.
-2. Deploy sebagai static site (Vercel: pilih repo -> Deploy).
-3. Pastikan file `logo_bumdes.png` dan `logo_desa.png` terdapat di folder root.
-
-Format rekomendasi file absen:
-Nama Pegawai | Hari Hadir | Total Hari Kerja
+Catatan keamanan:
+- Password disimpan sebagai hash SHA-256 di LocalStorage (bukan plaintext) — tetap hanya untuk testing/demo.
+- Untuk produksi, gunakan backend & database yang aman.
