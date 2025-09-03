@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SIPKADES — Sistem Informasi Penilaian Kinerja Aparatur Desa</title>
-  <meta name="description" content="SIPKADES — Sistem Informasi Penilaian Kinerja Aparatur Desa. 360° appraisal, multi-role (BUMDes, Pemdes, BPD), export Excel, upload absen." />
+  <meta name="description" content="SIPKADES — SIP penilaian kinerja aparatur desa. 360° appraisal, multi-role, upload absen, export Excel." />
   <style>
     :root{
       --bg:#f5f7fb; --card:#ffffff; --muted:#586069; --accent:#0b63d6; --accent-2:#03204a;
@@ -20,7 +20,7 @@
     p.lead{margin:0;color:var(--muted);font-size:13px}
     main{display:grid;grid-template-columns:1fr 380px;gap:18px}
     @media (max-width:980px){main{grid-template-columns:1fr} .sidebar{order:2}}
-    .card{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+    .card{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);margin-bottom:12px}
     label{display:block;font-size:13px;margin-bottom:6px;color:#0b1724}
     input, select, textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #e6edf7;background:#fbfdff}
     .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:0;background:var(--accent);color:#fff;font-weight:600;cursor:pointer}
@@ -33,6 +33,8 @@
     .role-pill{padding:6px 10px;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;font-weight:700;font-size:13px}
     .flex{display:flex;gap:10px;align-items:center}
     .right{text-align:right}
+    .modal{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(2,6,23,0.6);display:flex;align-items:center;justify-content:center;padding:20px;z-index:9999}
+    .modal .card{max-width:900px;width:100%}
   </style>
 </head>
 <body>
@@ -50,31 +52,30 @@
       </div>
     </header>
 
-    <!-- Simple login / role selector -->
-    <div class="card" style="margin-bottom:12px">
-      <strong>Login Sementara (Pilih Peran)</strong>
-      <div class="small">Pilih peran untuk membuka dashboard per-layanan. Ini adalah login demo (tanpa autentikasi server).</div>
-      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-        <button class="btn" onclick="app.login('bumdes')">Masuk sebagai BUMDes</button>
-        <button class="btn" onclick="app.login('pemdes')">Masuk sebagai Pemdes</button>
-        <button class="btn" onclick="app.login('bpd')">Masuk sebagai BPD</button>
-        <button class="btn ghost" onclick="app.logout()">Keluar</button>
-      </div>
-    </div>
-
     <main>
-      <section>
-        <div class="card">
+      <section id="leftCol">
+        <div class="card" id="loginCard">
+          <strong>Login Sederhana (Pilih Peran)</strong>
+          <div class="small">Login demo tanpa server — digunakan untuk memilih tampilan per-peran.</div>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+            <button class="btn" id="btnBumdes">Masuk sebagai BUMDes</button>
+            <button class="btn" id="btnPemdes">Masuk sebagai Pemdes</button>
+            <button class="btn" id="btnBPD">Masuk sebagai BPD</button>
+            <button class="btn ghost" id="btnLogout">Keluar</button>
+          </div>
+        </div>
+
+        <div class="card" id="mainApp" style="display:none">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-            <div><strong id="panelTitle">Panel: BUMDes</strong><div class="small">Kelola pegawai, penilaian 360°, dan slip gaji.</div></div>
-            <div class="role-pill" id="rolePill">BUMDes</div>
+            <div><strong id="panelTitle">Panel</strong><div class="small" id="panelSub">Kelola pegawai & penilaian</div></div>
+            <div class="role-pill" id="rolePill">-</div>
           </div>
 
-          <div id="mainContent">
-            <!-- Employee input form -->
-            <div style="margin-bottom:14px">
-              <strong>Tambah / Kelola Pegawai</strong>
-              <div class="small">Isikan data pegawai dan unggah rekap kehadiran jika tersedia.</div>
+          <div id="contentArea">
+            <!-- Employee input -->
+            <div id="employeeForm" style="margin-bottom:12px">
+              <strong>Tambah / Edit Pegawai</strong>
+              <div class="small">Isi data pegawai lalu lakukan penilaian.</div>
               <div style="margin-top:10px;">
                 <label>Nama Pegawai</label>
                 <input id="empName" type="text" placeholder="Nama lengkap" />
@@ -85,7 +86,7 @@
                   </div>
                   <div>
                     <label>Periode</label>
-                    <input id="period" type="text" value="Agustus 2025" />
+                    <input id="period" type="text" value="" placeholder="September 2025" />
                   </div>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
@@ -102,7 +103,7 @@
                 <div style="margin-top:10px">
                   <label>Unggah Rekap Kehadiran (Excel/CSV) — Opsional</label>
                   <input id="attendanceFile" type="file" accept=".xlsx,.xls,.csv" />
-                  <div class="small">Format sederhana yang dianjurkan: <strong>Nama Pegawai | Hari Hadir | Total Hari Kerja</strong>. Sistem akan mencari nama yang sama untuk menghitung persentase hadir.</div>
+                  <div class="small">Format yang dianjurkan: <strong>Nama Pegawai | Hari Hadir | Total Hari Kerja</strong>.</div>
                 </div>
 
                 <div style="margin-top:10px;display:flex;gap:8px">
@@ -114,33 +115,30 @@
 
             <hr />
 
-            <!-- Multi-rater forms -->
             <div id="ratersArea"></div>
 
             <div style="margin-top:12px">
               <strong>Daftar Pegawai</strong>
-              <div style="margin-top:8px;overflow:auto;max-height:320px">
+              <div style="margin-top:8px;overflow:auto;max-height:300px">
                 <table id="employeesTable">
                   <thead><tr><th>Nama</th><th>Jabatan</th><th>Periode</th><th>Skor</th><th>Aksi</th></tr></thead>
                   <tbody></tbody>
                 </table>
               </div>
             </div>
-
           </div>
         </div>
 
-        <!-- Slip preview area (hidden until generated) -->
-        <div class="card" style="margin-top:14px">
-          <strong>Contoh Slip Gaji (Preview)</strong>
+        <div class="card">
+          <strong>Pratinjau Slip Gaji</strong>
           <div id="slipPreview" class="small" style="margin-top:8px">Belum ada slip yang dihasilkan.</div>
         </div>
       </section>
 
       <aside class="sidebar">
         <div class="card">
-          <strong>Rekap & Pengaturan</strong>
-          <div class="small" style="margin-top:8px">Ringkasan jumlah pegawai dan rata-rata skor.</div>
+          <strong>Ringkasan & Kontrol</strong>
+          <div class="small" style="margin-top:8px">Total pegawai & skor rata-rata</div>
           <div style="margin-top:8px"><div class="small">Total pegawai: <span id="totalEmp">0</span></div></div>
           <div style="margin-top:8px"><div class="small">Skor rata-rata: <span id="avgScore">0.00</span></div></div>
 
@@ -157,11 +155,11 @@
 
           <hr style="margin:12px 0" />
           <div>
-            <strong>Export</strong>
-            <div class="small">Export data pegawai & slip gaji ke Excel.</div>
+            <strong>Ekspor & Project</strong>
+            <div class="small" style="margin-top:8px">Export data & slip ke Excel. Download project ZIP siap upload GitHub.</div>
             <div style="display:flex;gap:8px;margin-top:8px">
-              <button id="exportAll" class="btn">Export Semua ke Excel</button>
-              <button id="downloadZip" class="btn ghost">Download Project ZIP</button>
+              <button id="exportAll" class="btn">Export Semua</button>
+              <button id="downloadZip" class="btn ghost">Download ZIP</button>
             </div>
           </div>
         </div>
@@ -171,288 +169,320 @@
     <footer>© SIPKADES — Sistem Informasi Penilaian Kinerja Aparatur Desa — Desa Keling</footer>
   </div>
 
-  <!-- External libs -->
+  <!-- libs -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
-  <script>
-    const app = (()=>{
-      const roles = {
-        bumdes: {label:'BUMDes', logo:'logo_bumdes.png', positions:[ 'Direktur Utama','Sekretaris','Bendahara','Manager Unit','Bendahara Unit','Pengawas' ]},
-        pemdes: {label:'Pemdes', logo:'logo_desa.png', positions:[ 'Kepala Desa','Sekretaris Desa','Kasi','Kaur','Kasun','RT','RW','Tenaga IT' ]},
-        bpd: {label:'BPD', logo:'logo_desa.png', positions:[ 'Ketua BPD','Sekretaris BPD','Anggota BPD' ]}
-      };
-      // default weights
-      let weights = {Disiplin:20, Produktivitas:25, Kompetensi:20, Kerjasama:15, Integritas:20};
-      const raters = [
-        {key:'atasan',label:'Atasan Langsung',weight:40},
-        {key:'rekan',label:'Rekan Sejawat',weight:20},
-        {key:'bawahan',label:'Bawahan',weight:20},
-        {key:'self',label:'Self Assessment',weight:20}
-      ];
+<script>
+// Full interactive JS for SIPKADES v1.1
+(() => {
+  // roles and positions
+  const roles = {
+    bumdes: {label:'BUMDes', logo:'logo_bumdes.png', positions:[ 'Direktur Utama','Sekretaris','Bendahara','Manager Unit','Bendahara Unit','Pengawas' ]},
+    pemdes: {label:'Pemdes', logo:'logo_desa.png', positions:[ 'Kepala Desa','Sekretaris Desa','Kasi','Kaur','Kasun','RT','RW','Tenaga IT' ]},
+    bpd: {label:'BPD', logo:'logo_desa.png', positions:[ 'Ketua BPD','Sekretaris BPD','Anggota BPD' ]}
+  };
 
-      let state = {role:'bumdes', employees:[], weights:weights};
+  const defaultWeights = {Disiplin:20, Produktivitas:25, Kompetensi:20, Kerjasama:15, Integritas:20};
+  const raters = [
+    {key:'atasan',label:'Atasan Langsung',weight:40},
+    {key:'rekan',label:'Rekan Sejawat',weight:20},
+    {key:'bawahan',label:'Bawahan',weight:20},
+    {key:'self',label:'Self Assessment',weight:20}
+  ];
 
-      // DOM refs
-      const rolePill = document.getElementById('rolePill');
-      const panelTitle = document.getElementById('panelTitle');
-      const logoImg = document.getElementById('logoImg');
-      const loggedAs = document.getElementById('loggedAs');
-      const roleSelect = document.getElementById('roleSelect');
-      const ratersArea = document.getElementById('ratersArea');
-      const employeesTable = document.querySelector('#employeesTable tbody');
-      const totalEmp = document.getElementById('totalEmp');
-      const avgScore = document.getElementById('avgScore');
-      const weightsArea = document.getElementById('weights');
-      const attendanceFile = document.getElementById('attendanceFile');
-      const slipPreview = document.getElementById('slipPreview');
+  // state
+  const stateKey = 'sipkades_v1_state';
+  let state = {role:'guest', weights:defaultWeights, employees:[]};
 
-      // persistence
-      function load(){ state = JSON.parse(localStorage.getItem('sipkades_state')||JSON.stringify(state)); if(!state.weights) state.weights = weights; }
-      function save(){ localStorage.setItem('sipkades_state', JSON.stringify(state)); }
+  // DOM
+  const logoImg = document.getElementById('logoImg');
+  const loggedAs = document.getElementById('loggedAs');
+  const rolePill = document.getElementById('rolePill');
+  const panelTitle = document.getElementById('panelTitle');
+  const btnBumdes = document.getElementById('btnBumdes');
+  const btnPemdes = document.getElementById('btnPemdes');
+  const btnBPD = document.getElementById('btnBPD');
+  const btnLogout = document.getElementById('btnLogout');
+  const mainApp = document.getElementById('mainApp');
+  const loginCard = document.getElementById('loginCard');
+  const roleSelect = document.getElementById('roleSelect');
+  const ratersArea = document.getElementById('ratersArea');
+  const employeesTable = document.querySelector('#employeesTable tbody');
+  const totalEmp = document.getElementById('totalEmp');
+  const avgScore = document.getElementById('avgScore');
+  const weightsArea = document.getElementById('weights');
+  const attendanceFile = document.getElementById('attendanceFile');
+  const slipPreview = document.getElementById('slipPreview');
 
-      function login(roleKey){ state.role = roleKey; renderForRole(); save(); }
-      function logout(){ state.role = 'guest'; renderForRole(); save(); }
+  // load / save
+  function load(){ try{ const s = localStorage.getItem(stateKey); if(s) state = JSON.parse(s); }catch(e){} }
+  function save(){ localStorage.setItem(stateKey, JSON.stringify(state)); }
 
-      function renderForRole(){
-        const r = roles[state.role] || roles['bumdes'];
-        rolePill.textContent = r.label;
-        panelTitle.textContent = 'Panel: ' + r.label;
-        logoImg.src = r.logo;
-        loggedAs.textContent = 'Masuk sebagai: ' + r.label;
-        // populate roleSelect options
-        roleSelect.innerHTML = r.positions.map(p=>`<option>${p}</option>`).join('');
-        renderRaterForms();
-        renderWeights();
-        renderEmployees();
-      }
+  // login handlers
+  btnBumdes.addEventListener('click', ()=>login('bumdes'));
+  btnPemdes.addEventListener('click', ()=>login('pemdes'));
+  btnBPD.addEventListener('click', ()=>login('bpd'));
+  btnLogout.addEventListener('click', ()=>logout());
 
-      function renderRaterForms(){
-        ratersArea.innerHTML = '';
-        for(const rt of raters){
-          const card = document.createElement('div');
-          card.className='card';
-          card.style.marginTop='10px';
-          card.innerHTML = `<strong>${rt.label} — bobot internal: ${rt.weight}%</strong><div class="small" style="margin-bottom:8px">Isi skor tiap aspek (1–5)</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">${Object.keys(state.weights||weights).map(k=>`<div><label>${k}</label><input data-rater="${rt.key}" data-aspect="${k}" type="number" min="1" max="5" value="5" /></div>`).join('')}</div><div style="margin-top:8px"><label>Komentar / Bukti</label><textarea data-rater="${rt.key}" placeholder="Catatan / link bukti (opsional)"></textarea></div>`;
-          ratersArea.appendChild(card);
-        }
-      }
+  function login(roleKey){
+    state.role = roleKey;
+    renderForRole();
+    save();
+  }
+  function logout(){
+    state.role = 'guest';
+    renderForRole();
+    save();
+  }
 
-      function renderWeights(){
-        weightsArea.innerHTML = '';
-        const ws = state.weights || weights;
-        for(const k of Object.keys(ws)){
-          const row = document.createElement('div');
-          row.style.display='flex';row.style.justifyContent='space-between';row.style.alignItems='center';row.style.marginBottom='8px';
-          row.innerHTML = `<div style="flex:1"><label>${k}</label><div class="small">Bobot aspek</div></div><div style="width:120px"><input data-weight-key="${k}" type="number" min="0" max="100" value="${ws[k]}" /></div>`;
-          weightsArea.appendChild(row);
-        }
-      }
+  function renderForRole(){
+    if(state.role === 'guest'){
+      mainApp.style.display = 'none'; loginCard.style.display = 'block'; logoImg.src = 'logo_bumdes.png'; loggedAs.textContent = 'Belum login'; return;
+    }
+    loginCard.style.display = 'none'; mainApp.style.display = 'block';
+    const r = roles[state.role];
+    logoImg.src = r.logo;
+    loggedAs.textContent = 'Masuk sebagai: ' + r.label;
+    rolePill.textContent = r.label;
+    panelTitle.textContent = 'Panel: ' + r.label;
+    // populate positions
+    roleSelect.innerHTML = r.positions.map(p=>`<option>${p}</option>`).join('');
+    // render rater forms & weights & employees
+    renderWeights();
+    renderRaterForms();
+    renderEmployees();
+  }
 
-      document.getElementById('saveWeights').addEventListener('click', ()=>{
-        const inputs = weightsArea.querySelectorAll('input[data-weight-key]');
-        let sum = 0; const neww = {};
-        inputs.forEach(i=>{ const k=i.getAttribute('data-weight-key'); neww[k]=Number(i.value); sum+=Number(i.value); });
-        if(sum !== 100){ alert('Total bobot harus 100% (saat ini: ' + sum + '%)'); return; }
-        state.weights = neww; save(); renderRaterForms(); alert('Bobot tersimpan.'); renderEmployees();
-      });
-      document.getElementById('resetWeights').addEventListener('click', ()=>{ state.weights = {Disiplin:20, Produktivitas:25, Kompetensi:20, Kerjasama:15, Integritas:20}; save(); renderWeights(); renderRaterForms(); });
+  function renderWeights(){
+    weightsArea.innerHTML = '';
+    const ws = state.weights || defaultWeights;
+    for(const k of Object.keys(ws)){
+      const row = document.createElement('div');
+      row.style.display='flex';row.style.justifyContent='space-between';row.style.alignItems='center';row.style.marginBottom='8px';
+      row.innerHTML = `<div style="flex:1"><label>${k}</label><div class="small">Bobot aspek</div></div><div style="width:120px"><input data-weight-key="${k}" type="number" min="0" max="100" value="${ws[k]}" /></div>`;
+      weightsArea.appendChild(row);
+    }
+  }
 
-      // attendance parsing (simple)
-      function parseAttendanceFile(file, callback){
-        const reader = new FileReader();
-        reader.onload = (e)=>{
+  document.getElementById('saveWeights').addEventListener('click', ()=>{
+    const inputs = weightsArea.querySelectorAll('input[data-weight-key]');
+    let sum = 0; const neww = {};
+    inputs.forEach(i=>{ const k=i.getAttribute('data-weight-key'); neww[k]=Number(i.value); sum+=Number(i.value); });
+    if(sum !== 100){ alert('Total bobot harus 100% (saat ini: ' + sum + '%)'); return; }
+    state.weights = neww; save(); renderRaterForms(); alert('Bobot tersimpan.'); renderEmployees();
+  });
+  document.getElementById('resetWeights').addEventListener('click', ()=>{ state.weights = Object.assign({}, defaultWeights); save(); renderWeights(); renderRaterForms(); });
+
+  function renderRaterForms(){
+    ratersArea.innerHTML = '';
+    for(const rt of raters){
+      const card = document.createElement('div');
+      card.className='card';
+      card.style.marginTop='10px';
+      card.innerHTML = `<strong>${rt.label} — bobot internal: ${rt.weight}%</strong><div class="small" style="margin-bottom:8px">Isi skor tiap aspek (1–5)</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">${Object.keys(state.weights||defaultWeights).map(k=>`<div><label>${k}</label><input data-rater="${rt.key}" data-aspect="${k}" type="number" min="1" max="5" value="5" /></div>`).join('')}</div><div style="margin-top:8px"><label>Komentar / Bukti</label><textarea data-rater="${rt.key}" placeholder="Catatan / link bukti (opsional)"></textarea></div>`;
+      ratersArea.appendChild(card);
+    }
+  }
+
+  // attendance parsing
+  function parseAttendanceFile(file){
+    return new Promise((resolve,reject)=>{
+      const reader = new FileReader();
+      reader.onload = (e)=>{
+        try{
           const data = e.target.result;
-          let wb;
-          try {
-            wb = XLSX.read(data, {type:'binary'});
-          } catch(err){
-            alert('Gagal membaca file absen. Pastikan format xlsx/xls/csv.');
-            return;
-          }
-          const first = wb.SheetNames[0];
-          const sheet = wb.Sheets[first];
+          const wb = XLSX.read(data, {type:'binary'});
+          const sheet = wb.Sheets[wb.SheetNames[0]];
           const json = XLSX.utils.sheet_to_json(sheet, {defval:''});
-          // normalize keys: look for columns that include 'nama' 'hadir' 'total'
           const rows = json.map(r=>{
             const keys = Object.keys(r);
             const obj = {};
             for(const k of keys){
               const lk = k.toString().toLowerCase();
               if(lk.includes('nama')) obj.name = r[k];
-              else if(lk.includes('hadir')) obj.hadir = r[k];
+              else if(lk.includes('hadir') || lk.includes('hari')) obj.hadir = r[k];
               else if(lk.includes('total')) obj.total = r[k];
             }
             return obj;
           }).filter(r=>r.name);
-          callback(rows);
-        };
-        // read as binary string to support xlsx/xls
-        reader.readAsBinaryString(file);
-      }
-
-      // save employee
-      document.getElementById('saveEmp').addEventListener('click', ()=>{
-        const name = document.getElementById('empName').value.trim();
-        if(!name){ alert('Nama pegawai harus diisi.'); return; }
-        const e = {
-          id: Date.now(),
-          name,
-          role: document.getElementById('roleSelect').value,
-          period: document.getElementById('period').value,
-          baseSalary: Number(document.getElementById('baseSalary').value)||0,
-          allowance: Number(document.getElementById('allowance').value)||0,
-          raters: {}
-        };
-        // collect rater scores from forms
-        for(const rt of raters){
-          const rObj = {scores:{}, comment:''};
-          const inputs = document.querySelectorAll(`input[data-rater="${rt.key}"]`);
-          inputs.forEach(inp=>{ const aspect = inp.getAttribute('data-aspect'); rObj.scores[aspect] = Number(inp.value)||1; });
-          const ta = document.querySelector(`textarea[data-rater="${rt.key}"]`);
-          rObj.comment = ta ? ta.value : '';
-          e.raters[rt.key] = rObj;
+          resolve(rows);
+        }catch(err){
+          reject(err);
         }
+      };
+      reader.onerror = (err)=>reject(err);
+      reader.readAsBinaryString(file);
+    });
+  }
 
-        // if attendance file provided, parse and attach attendance percent
-        const file = attendanceFile.files[0];
-        if(file){
-          parseAttendanceFile(file, (rows)=>{
-            // find by exact name match (case-insensitive)
-            const found = rows.find(r=> (r.name||'').toString().trim().toLowerCase() === name.toLowerCase());
-            if(found && found.hadir && found.total){
-              const hadir = Number(found.hadir)||0; const total = Number(found.total)||1;
-              e.attendance = {hadir, total, percent: Math.round((hadir/total)*100)};
-              state.employees.push(e); save(); renderEmployees(); alert('Pegawai disimpan beserta data kehadiran ('+e.attendance.percent+'%).');
-            } else {
-              state.employees.push(e); save(); renderEmployees(); alert('Pegawai disimpan. File absen diproses, namun tidak ditemukan baris untuk nama ini.');
-            }
-          });
-        } else {
-          state.employees.push(e); save(); renderEmployees(); alert('Pegawai disimpan.');
+  // save employee
+  document.getElementById('saveEmp').addEventListener('click', async ()=>{
+    const name = document.getElementById('empName').value.trim();
+    if(!name){ alert('Nama pegawai harus diisi.'); return; }
+    const emp = {
+      id: Date.now(),
+      name,
+      role: document.getElementById('roleSelect').value,
+      period: document.getElementById('period').value,
+      baseSalary: Number(document.getElementById('baseSalary').value)||0,
+      allowance: Number(document.getElementById('allowance').value)||0,
+      raters: {},
+      attendance: null
+    };
+    // collect rater scores
+    for(const rt of raters){
+      const rObj = {scores:{}, comment:''};
+      const inputs = document.querySelectorAll(`input[data-rater="${rt.key}"]`);
+      inputs.forEach(inp=>{ const aspect = inp.getAttribute('data-aspect'); rObj.scores[aspect] = Number(inp.value)||1; });
+      const ta = document.querySelector(`textarea[data-rater="${rt.key}"]`);
+      rObj.comment = ta ? ta.value : '';
+      emp.raters[rt.key] = rObj;
+    }
+
+    // handle attendance file if present
+    const file = attendanceFile.files[0];
+    if(file){
+      try{
+        const rows = await parseAttendanceFile(file);
+        const found = rows.find(r=> (r.name||'').toString().trim().toLowerCase() === name.toLowerCase());
+        if(found && found.hadir!==undefined && found.total!==undefined){
+          const hadir = Number(found.hadir)||0; const total = Number(found.total)||1;
+          emp.attendance = {hadir, total, percent: Math.round((hadir/total)*100)};
         }
-      });
-
-      document.getElementById('clearForm').addEventListener('click', ()=>{
-        document.getElementById('empName').value=''; document.getElementById('baseSalary').value=3000000; document.getElementById('allowance').value=500000; document.getElementById('period').value=''; attendanceFile.value='';
-      });
-
-      // compute score using weights and rater weights; attendance affects Disiplin via percentage -> map to 1-5
-      function attendanceToScore(percent){
-        if(percent >= 95) return 5;
-        if(percent >= 90) return 4;
-        if(percent >= 80) return 3;
-        if(percent >= 70) return 2;
-        return 1;
+      }catch(e){
+        alert('Gagal membaca file absen. Pastikan format xlsx/xls/csv.');
       }
+    }
 
-      function computeScore(emp){
-        const ws = state.weights || weights;
-        const raterResults = [];
-        for(const rt of raters){
-          const data = emp.raters[rt.key];
-          if(!data) continue;
-          // if attendance present and aspect Disiplin exists, override score with attendance mapped value for Disiplin
-          let sumAspect = 0; let totalW = 0;
-          for(const [aspect,w] of Object.entries(ws)){
-            let val = (data.scores && data.scores[aspect]) ? data.scores[aspect] : 1;
-            if(aspect === 'Disiplin' && emp.attendance && typeof emp.attendance.percent === 'number'){
-              val = attendanceToScore(emp.attendance.percent);
-            }
-            sumAspect += val * (w/100); totalW += (w/100);
-          }
-          const rScore = sumAspect / totalW;
-          raterResults.push({score: rScore, weight: rt.weight});
+    // add to state and persist
+    state.employees.push(emp);
+    save();
+    clearForm();
+    renderEmployees();
+    alert('Pegawai disimpan.');
+  });
+
+  document.getElementById('clearForm').addEventListener('click', clearForm);
+  function clearForm(){ document.getElementById('empName').value=''; document.getElementById('baseSalary').value=3000000; document.getElementById('allowance').value=500000; document.getElementById('period').value=''; attendanceFile.value=''; renderRaterForms(); }
+
+  function attendanceToScore(percent){
+    if(percent >= 95) return 5;
+    if(percent >= 90) return 4;
+    if(percent >= 80) return 3;
+    if(percent >= 70) return 2;
+    return 1;
+  }
+
+  function computeScore(emp){
+    const ws = state.weights || defaultWeights;
+    const raterResults = [];
+    for(const rt of raters){
+      const data = emp.raters[rt.key];
+      if(!data) continue;
+      let sumAspect = 0; let totalW = 0;
+      for(const [aspect,w] of Object.entries(ws)){
+        let val = (data.scores && data.scores[aspect]) ? data.scores[aspect] : 1;
+        if(aspect === 'Disiplin' && emp.attendance && typeof emp.attendance.percent === 'number'){
+          val = attendanceToScore(emp.attendance.percent);
         }
-        if(raterResults.length === 0) return 0;
-        let agg = 0; let tw = 0;
-        for(const rr of raterResults){ agg += rr.score * (rr.weight/100); tw += (rr.weight/100); }
-        const final = tw ? (agg / tw) : 0;
-        return Number(final.toFixed(2));
+        sumAspect += val * (w/100); totalW += (w/100);
       }
+      const rScore = sumAspect / totalW;
+      raterResults.push({score: rScore, weight: rt.weight});
+    }
+    if(raterResults.length === 0) return 0;
+    let agg = 0; let tw = 0;
+    for(const rr of raterResults){ agg += rr.score * (rr.weight/100); tw += (rr.weight/100); }
+    const final = tw ? (agg / tw) : 0;
+    return Number(final.toFixed(2));
+  }
 
-      function renderEmployees(){
-        employeesTable.innerHTML = '';
-        for(const e of (state.employees||[])){
-          const tr = document.createElement('tr');
-          const score = computeScore(e);
-          tr.innerHTML = `<td>${e.name}</td><td>${e.role}</td><td>${e.period||''}</td><td>${score}</td><td><button class="btn ghost" data-id="${e.id}" onclick="app.openDetail(${e.id})">Lihat</button></td>`;
-          employeesTable.appendChild(tr);
-        }
-        totalEmp.textContent = (state.employees||[]).length;
-        // avg
-        const arr = (state.employees||[]).map(e=>computeScore(e)); const avg = arr.length? (arr.reduce((a,b)=>a+b,0)/arr.length):0;
-        avgScore.textContent = avg.toFixed(2);
+  function renderEmployees(){
+    employeesTable.innerHTML = '';
+    for(const e of (state.employees||[])){
+      const tr = document.createElement('tr');
+      const score = computeScore(e);
+      tr.innerHTML = `<td>${e.name}</td><td>${e.role}</td><td>${e.period||''}</td><td>${score}</td><td><button class="btn ghost" data-id="${e.id}" onclick="window.sipkades.openDetail(${e.id})">Lihat</button></td>`;
+      employeesTable.appendChild(tr);
+    }
+    totalEmp.textContent = (state.employees||[]).length;
+    const arr = (state.employees||[]).map(e=>computeScore(e)); const avg = arr.length? (arr.reduce((a,b)=>a+b,0)/arr.length):0;
+    avgScore.textContent = avg.toFixed(2);
+  }
+
+  // expose openDetail for inline onclick usage
+  window.sipkades = {
+    openDetail: function(id){
+      const emp = (state.employees||[]).find(x=>x.id===id); if(!emp) return;
+      let rows = '';
+      for(const [rk,rv] of Object.entries(emp.raters || {})){
+        rows += `<tr><td>${raters.find(r=>r.key===rk).label}</td><td>${Object.entries(rv.scores).map(([a,s])=>a+': '+s).join('<br>')}</td><td>${rv.comment||''}</td></tr>`;
       }
+      const score = computeScore(emp);
+      const slipHtml = `<div style="padding:12px"><h3 style="margin:0">SIPKADES — Desa Keling</h3><div class="small">Slip Gaji — Periode: ${emp.period||''}</div><hr /><table style="width:100%;font-size:14px"><tr><td><strong>Nama</strong></td><td>${emp.name}</td></tr><tr><td><strong>Jabatan</strong></td><td>${emp.role}</td></tr><tr><td><strong>Gaji Pokok</strong></td><td>Rp ${emp.baseSalary.toLocaleString('id-ID')}</td></tr><tr><td><strong>Tunjangan</strong></td><td>Rp ${emp.allowance.toLocaleString('id-ID')}</td></tr><tr><td><strong>Skor Kinerja</strong></td><td>${score}</td></tr></table><hr /><div class="small">Rincian penilaian:</div><table style="width:100%;margin-top:8px">${rows}</table><div style="margin-top:12px"><strong>Catatan:</strong><div class="small">Slip ini dihitung dari penilaian 360° dan data kehadiran (jika diunggah).</div></div></div>`;
+      showModal(slipHtml, ()=>generateSlip([emp]));
+    }
+  };
 
-      function openDetail(id){
-        const emp = (state.employees||[]).find(x=>x.id===id); if(!emp) return;
-        // build detail html and show simple modal
-        let rows = '';
-        for(const [rk,rv] of Object.entries(emp.raters || {})){
-          rows += `<tr><td>${raters.find(r=>r.key===rk).label}</td><td>${Object.entries(rv.scores).map(([a,s])=>a+': '+s).join('<br>')}</td><td>${rv.comment||''}</td></tr>`;
-        }
-        const score = computeScore(emp);
-        const slipHtml = `<div style="padding:12px"><h3 style="margin:0">SIPKADES — Desa Keling</h3><div class="small">Slip Gaji / Periode: ${emp.period||''}</div><hr /><table style="width:100%;font-size:14px"><tr><td><strong>Nama</strong></td><td>${emp.name}</td></tr><tr><td><strong>Jabatan</strong></td><td>${emp.role}</td></tr><tr><td><strong>Gaji Pokok</strong></td><td>Rp ${emp.baseSalary.toLocaleString('id-ID')}</td></tr><tr><td><strong>Tunjangan</strong></td><td>Rp ${emp.allowance.toLocaleString('id-ID')}</td></tr><tr><td><strong>Skor Kinerja</strong></td><td>${score}</td></tr></table><hr /><div class="small">Rincian penilaian:</div><table style="width:100%;margin-top:8px">${rows}</table><div style="margin-top:12px"><strong>Catatan:</strong><div class="small">Slip ini otomatis dihitung berdasarkan hasil penilaian 360° dan data kehadiran (jika diunggah).</div></div></div>`;
-        showModal(slipHtml, ()=>{ generateSlip([emp]); });
-      }
+  function showModal(innerHtml, onDownload){
+    const modal = document.createElement('div'); modal.className='modal';
+    modal.innerHTML = `<div class="card"><div style="padding:12px">${innerHtml}<div style="text-align:right;margin-top:12px"><button id="dlSlip" class="btn">Download Slip (Excel)</button><button id="closeM" class="btn ghost">Tutup</button></div></div></div>`;
+    document.body.appendChild(modal);
+    modal.querySelector('#closeM').addEventListener('click', ()=>modal.remove());
+    modal.querySelector('#dlSlip').addEventListener('click', ()=>{ if(onDownload) onDownload(); modal.remove(); });
+  }
 
-      function showModal(innerHtml, onDownload){
-        const modal = document.createElement('div'); modal.style.position='fixed';modal.style.left=0;modal.style.top=0;modal.style.right=0;modal.style.bottom=0;modal.style.background='rgba(2,6,23,0.6)';modal.style.display='flex';modal.style.alignItems='center';modal.style.justifyContent='center';
-        modal.innerHTML = `<div class="card" style="width:95%;max-width:900px"><div style="padding:12px">${innerHtml}<div style="text-align:right;margin-top:12px"><button id="dlSlip" class="btn">Download Slip (Excel)</button><button id="closeM" class="btn ghost">Tutup</button></div></div></div>`;
-        document.body.appendChild(modal);
-        modal.querySelector('#closeM').addEventListener('click', ()=>modal.remove());
-        modal.querySelector('#dlSlip').addEventListener('click', ()=>{ if(onDownload) onDownload(); modal.remove(); });
-      }
+  // export functions
+  function exportEmployees(list){
+    const wb = XLSX.utils.book_new();
+    const data = list.map(e=>{
+      const obj = {Nama:e.name, Jabatan:e.role, Periode:e.period, GajiPokok:e.baseSalary, Tunjangan:e.allowance, Skor:computeScore(e)};
+      if(e.attendance) obj.Absen = `${e.attendance.hadir}/${e.attendance.total} (${e.attendance.percent}%)`;
+      for(const rt of raters){ const rv = e.raters[rt.key]; if(rv){ for(const [a,v] of Object.entries(rv.scores)){ obj[`${rt.label} - ${a}`]=v } obj[`${rt.label} - Komentar`]=rv.comment||'' } }
+      return obj;
+    });
+    const ws = XLSX.utils.json_to_sheet(data);
+    XLSX.utils.book_append_sheet(wb, ws, 'DataPegawai');
+    for(const e of list){
+      const slip = [['SIPKADES — Desa Keling'],['Slip Gaji'],[],['Nama', e.name],['Jabatan', e.role],['Periode', e.period||''],['Gaji Pokok', e.baseSalary],['Tunjangan', e.allowance],['Skor Kinerja', computeScore(e)],[],['Rincian:']];
+      for(const rt of raters){ const rv = e.raters[rt.key]; if(rv){ slip.push([rt.label]); for(const [a,v] of Object.entries(rv.scores)){ slip.push([a, v]) } if(rv.comment) slip.push(['Komentar', rv.comment]); slip.push([]); } }
+      if(e.attendance) slip.push(['Absensi', `${e.attendance.hadir}/${e.attendance.total} (${e.attendance.percent}%)`]);
+      slip.push([]); slip.push(['Total Diterima', e.baseSalary + e.allowance]);
+      const ws2 = XLSX.utils.aoa_to_sheet(slip);
+      const name = e.name.replace(/[^a-z0-9]/gi,'_').substring(0,20) || 'pegawai';
+      XLSX.utils.book_append_sheet(wb, ws2, 'Slip_'+name);
+    }
+    const wbout = XLSX.write(wb,{bookType:'xlsx',type:'array'});
+    const blob = new Blob([wbout],{type:'application/octet-stream'});
+    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'SIPKADES_Data_'+(new Date()).toISOString().slice(0,10)+'.xlsx'; a.click(); URL.revokeObjectURL(url);
+  }
 
-      // Export to Excel (SheetJS)
-      function exportEmployees(list){
-        const wb = XLSX.utils.book_new();
-        const data = list.map(e=>{
-          const obj = {Nama:e.name, Jabatan:e.role, Periode:e.period, GajiPokok:e.baseSalary, Tunjangan:e.allowance, Skor:computeScore(e)};
-          if(e.attendance) obj.Absen = `${e.attendance.hadir}/${e.attendance.total} (${e.attendance.percent}%)`;
-          for(const rt of raters){ const rv = e.raters[rt.key]; if(rv){ for(const [a,v] of Object.entries(rv.scores)){ obj[`${rt.label} - ${a}`]=v } obj[`${rt.label} - Komentar`]=rv.comment||'' } }
-          return obj;
-        });
-        const ws = XLSX.utils.json_to_sheet(data);
-        XLSX.utils.book_append_sheet(wb, ws, 'DataPegawai');
-        for(const e of list){
-          const slip = [['SIPKADES — Desa Keling'],['Slip Gaji'],[],['Nama', e.name],['Jabatan', e.role],['Periode', e.period||''],['Gaji Pokok', e.baseSalary],['Tunjangan', e.allowance],['Skor Kinerja', computeScore(e)],[],['Rincian:']];
-          for(const rt of raters){ const rv = e.raters[rt.key]; if(rv){ slip.push([rt.label]); for(const [a,v] of Object.entries(rv.scores)){ slip.push([a, v]) } if(rv.comment) slip.push(['Komentar', rv.comment]); slip.push([]); } }
-          if(e.attendance) slip.push(['Absensi', `${e.attendance.hadir}/${e.attendance.total} (${e.attendance.percent}%)`]);
-          slip.push([]); slip.push(['Total Diterima', e.baseSalary + e.allowance]); // incentive logic can be extended
-          const ws2 = XLSX.utils.aoa_to_sheet(slip);
-          const name = e.name.replace(/[^a-z0-9]/gi,'_').substring(0,20) || 'pegawai';
-          XLSX.utils.book_append_sheet(wb, ws2, 'Slip_'+name);
-        }
-        const wbout = XLSX.write(wb,{bookType:'xlsx',type:'array'});
-        const blob = new Blob([wbout],{type:'application/octet-stream'});
-        const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'SIPKADES_Data_'+(new Date()).toISOString().slice(0,10)+'.xlsx'; a.click(); URL.revokeObjectURL(url);
-      }
+  document.getElementById('exportAll').addEventListener('click', ()=>{ if(!(state.employees||[]).length){ alert('Belum ada pegawai.'); return; } exportEmployees(state.employees); });
 
-      document.getElementById('exportAll').addEventListener('click', ()=>{ if(!(state.employees||[]).length){ alert('Belum ada pegawai.'); return; } exportEmployees(state.employees); });
-      document.getElementById('downloadZip').addEventListener('click', async ()=>{
-        const zip = new JSZip();
-        // include current index.html content from DOM but remove large binary blobs
-        const html = `<!doctype html>\\n` + document.documentElement.outerHTML.replace(/<script[\\s\\S]*?<\\/script>/g,'<!-- scripts omitted for zip - use CDN libs -->');
-        zip.file('index.html', html);
-        zip.file('README.md', '# SIPKADES\\nSistem Informasi Penilaian Kinerja Aparatur Desa - Desa Keling\\n\\nUpload ke GitHub dan deploy di Vercel (static site).\\n');
-        // include logos by fetching from same origin (data URLs are not accessible here) - but logos present as files in repo via server when zipped by backend
-        alert('ZIP akan diunduh. (Catatan: pada versi ini logo sudah termasuk di paket server saat dibuat).');
-        const content = await zip.generateAsync({type:'blob'});
-        const url = URL.createObjectURL(content); const a = document.createElement('a'); a.href=url; a.download = 'SIPKADES_Project.zip'; a.click(); URL.revokeObjectURL(url);
-      });
+  document.getElementById('downloadZip').addEventListener('click', async ()=>{
+    const zip = new JSZip();
+    // include core files
+    const html = `<!doctype html>\n` + document.documentElement.outerHTML;
+    zip.file('index.html', html);
+    zip.file('README.md', '# SIPKADES v1.1\\nExport generated from browser (trimmed index).');
+    alert('ZIP dibuat dan diunduh (berisi index.html).');
+    const content = await zip.generateAsync({type:'blob'});
+    const url = URL.createObjectURL(content);
+    const a = document.createElement('a'); a.href = url; a.download = 'SIPKADES_v1.1.zip'; a.click(); URL.revokeObjectURL(url);
+  });
 
-      function generateSlip(list){ exportEmployees(list); }
+  function generateSlip(list){ exportEmployees(list); }
 
-      // modal helper
-      function showAlert(msg){ alert(msg); }
+  // init load state and render
+  load();
+  renderForRole();
 
-      // init
-      load();
-      renderForRole();
-      return { login, logout, openDetail, generateSlip };
-    })();
-  </script>
+  // expose state for debugging in console
+  window._SIPKADES_STATE = state;
+
+})();
+</script>
+
 </body>
 </html>

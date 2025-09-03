@@ -1,5 +1,5 @@
 
-# SIPKADES v1.0
+# SIPKADES v1.1
 SIPKADES — Sistem Informasi Penilaian Kinerja Aparatur Desa (Desa Keling).
 Single-file static web app (index.html) + assets; dapat di-deploy di GitHub Pages / Vercel (static).
 
@@ -16,6 +16,4 @@ Instruksi singkat:
 3. Pastikan file `logo_bumdes.png` dan `logo_desa.png` terdapat di folder root.
 
 Format rekomendasi file absen:
-| Nama Pegawai | Hari Hadir | Total Hari Kerja |
-
-Contoh: Nama Pegawai,10,22
+Nama Pegawai | Hari Hadir | Total Hari Kerja
