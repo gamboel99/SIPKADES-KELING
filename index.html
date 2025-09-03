@@ -1,108 +1,619 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>SIPKADES v1.3.1</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SIPKADES v1.3 — Sistem Informasi Penilaian Kinerja Aparatur Desa</title>
+  <meta name="description" content="SIPKADES v1.3 - Login/Register (LocalStorage), role-based dashboard, 360° appraisal, upload absen, export Excel." />
   <style>
-    body{font-family:Arial, sans-serif;margin:0;background:#f6f8fb;color:#333}
-    header{background:#0b63d6;color:#fff;padding:10px 20px;display:flex;align-items:center;justify-content:space-between}
-    header img{height:50px}
-    nav{margin-top:10px}
-    nav button{margin:5px;padding:8px 12px;border:none;border-radius:6px;cursor:pointer}
-    #appMain{padding:20px}
-    .card{background:#fff;padding:20px;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.1);margin-bottom:20px}
-    #logoutBtn{background:#d9534f;color:#fff}
-    #loginBtn,#registerBtn{background:#0b63d6;color:#fff}
+    :root{
+      --bg:#f5f7fb; --card:#ffffff; --muted:#586069; --accent:#0b63d6; --accent-2:#03204a;
+      --radius:12px; --shadow: 0 8px 22px rgba(10,20,40,0.08);
+    }
+    *{box-sizing:border-box}
+    body{font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial; margin:0; background:linear-gradient(180deg,var(--bg),#eef3fb); color:#0b1620;}
+    .wrap{max-width:1100px;margin:24px auto;padding:18px}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo-img{width:64px;height:64px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:var(--shadow)}
+    h1{font-size:18px;margin:0}
+    p.lead{margin:0;color:var(--muted);font-size:13px}
+    main{display:grid;grid-template-columns:1fr 380px;gap:14px}
+    @media (max-width:980px){main{grid-template-columns:1fr} .sidebar{order:2}}
+    .card{background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);margin-bottom:12px}
+    label{display:block;font-size:13px;margin-bottom:6px;color:#0b1724}
+    input, select, textarea, button{width:100%;padding:10px;border-radius:8px;border:1px solid #e6edf7;background:#fbfdff}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:0;background:var(--accent);color:#fff;font-weight:600;cursor:pointer}
+    .btn.ghost{background:transparent;color:var(--accent);border:1px solid rgba(11,99,214,0.12)}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th,td{padding:8px;border-bottom:1px solid #f1f5f9;text-align:left}
+    th{color:var(--muted);font-weight:600}
+    .small{font-size:12px;color:var(--muted)}
+    footer{margin-top:18px;text-align:center;color:var(--muted);font-size:13px}
+    .role-pill{padding:6px 10px;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;font-weight:700;font-size:13px}
+    .flex{display:flex;gap:10px;align-items:center}
+    .right{text-align:right}
+    .topright{display:flex;gap:8px;align-items:center}
+    .modal{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(2,6,23,0.6);display:flex;align-items:center;justify-content:center;padding:20px;z-index:9999}
+    .modal .card{max-width:900px;width:100%}
+    .inline{display:inline-block;width:auto}
+    input[type=file]{padding:6px}
+    .user-list{max-height:160px;overflow:auto}
   </style>
 </head>
 <body>
-  <header>
-    <div><img id="logoImg" src="logo_desa.png" alt="Logo"></div>
-    <div><strong>SIPKADES v1.3.1</strong></div>
-    <div>
-      <span id="loggedAs">Belum login</span>
-      <button id="logoutBtn" style="display:none">Logout</button>
-    </div>
-  </header>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div id="logoBox" class="logo-img"><img id="logoImg" src="logo_bumdes.png" alt="logo" style="width:100%;height:100%;object-fit:contain" /></div>
+        <div>
+          <h1>SIPKADES</h1>
+          <p class="lead">Sistem Informasi Penilaian Kinerja Aparatur Desa — Desa Keling</p>
+        </div>
+      </div>
+      <div class="topright">
+        <div id="loggedAs" class="small right">Belum login</div>
+        <button id="logoutBtn" class="btn ghost" style="display:none;margin-left:8px;width:auto">Logout</button>
+      </div>
+    </header>
 
-  <main id="appMain" style="display:none">
-    <div class="card">
-      <h2 id="panelTitle">Panel</h2>
-      <p>Halo, <span id="rolePill"></span>. Silakan gunakan menu di bawah ini.</p>
-    </div>
-    <div class="card" id="userControls" style="display:none">
-      <h3>Manajemen User (Admin)</h3>
-      <div id="userList"></div>
-    </div>
-  </main>
+    <!-- Login / Register area -->
+    <div id="authArea">
+      <div class="card" id="loginCard">
+        <strong>Halaman Login</strong>
+        <div class="small">Masuk dengan akun yang terdaftar.</div>
+        <div style="margin-top:8px">
+          <label>Username</label><input id="loginUser" type="text" />
+          <label style="margin-top:8px">Password</label><input id="loginPass" type="password" />
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button id="doLogin" class="btn">Masuk</button>
+            <button id="showRegister" class="btn ghost">Daftar (Admin Awal jika belum ada akun)</button>
+          </div>
+        </div>
+      </div>
 
-  <section id="authArea" style="padding:20px">
-    <div class="card" id="loginCard">
-      <h2>Login</h2>
-      <input id="loginUser" placeholder="Username"><br>
-      <input id="loginPass" type="password" placeholder="Password"><br>
-      <button id="loginBtn">Login</button>
-      <p>Belum punya akun? <a href="#" onclick="toggleRegister()">Daftar</a></p>
+      <div class="card" id="registerCard" style="display:none">
+        <strong>Registrasi Akun</strong>
+        <div class="small" id="regHelp">Jika belum ada akun, buat akun Admin awal. Setelah ada Admin, pendaftaran hanya dapat dilakukan oleh Admin melalui menu Pengguna.</div>
+        <div style="margin-top:8px">
+          <label>Username</label><input id="regUser" type="text" />
+          <label style="margin-top:8px">Password</label><input id="regPass" type="password" />
+          <label style="margin-top:8px">Peran</label>
+          <select id="regRole"><option value="bumdes">BUMDes</option><option value="pemdes">Pemdes</option><option value="bpd">BPD</option><option value="admin">Admin</option></select>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button id="doRegister" class="btn">Daftar</button>
+            <button id="hideRegister" class="btn ghost">Batal</button>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="card" id="registerCard" style="display:none">
-      <h2>Registrasi</h2>
-      <input id="regUser" placeholder="Username"><br>
-      <input id="regPass" type="password" placeholder="Password"><br>
-      <select id="regRole">
-        <option value="bumdes">BUMDes</option>
-        <option value="pemdes">Pemdes</option>
-        <option value="bpd">BPD</option>
-      </select><br>
-      <button id="registerBtn">Register</button>
-      <p>Sudah punya akun? <a href="#" onclick="toggleRegister()">Login</a></p>
-    </div>
-  </section>
 
-  <script>
-    let state={users:[],currentUser:null};
-    const roles={
-      'bumdes':{label:'BUMDes',logo:'logo_bumdes.png',positions:['Direktur Utama','Sekretaris','Bendahara','Manager Unit','Bendahara Unit','Pengawas']},
-      'pemdes':{label:'Pemerintah Desa',logo:'logo_desa.png',positions:['Kepala Desa','Sekretaris Desa','Kasi','Kaur','Kasun','RT','RW','Tenaga IT']},
-      'bpd':{label:'BPD',logo:'logo_desa.png',positions:['Ketua BPD','Sekretaris BPD','Anggota BPD']},
-      'admin':{label:'Admin',logo:'logo_desa.png',positions:[]}
+    <!-- Main App -->
+    <main id="appMain" style="display:none">
+      <section id="leftCol">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div><strong id="panelTitle">Panel</strong><div class="small" id="panelSub">Kelola pegawai & penilaian</div></div>
+            <div class="role-pill" id="rolePill">-</div>
+          </div>
+
+          <div id="contentArea">
+            <!-- Employee input -->
+            <div id="employeeForm" style="margin-bottom:12px">
+              <strong>Tambah / Edit Pegawai</strong>
+              <div class="small">Isi data pegawai lalu lakukan penilaian.</div>
+              <div style="margin-top:10px;">
+                <label>Nama Pegawai</label>
+                <input id="empName" type="text" placeholder="Nama lengkap" />
+                <div style="display:grid;grid-template-columns:1fr 160px;gap:8px;margin-top:8px">
+                  <div>
+                    <label>Jabatan</label>
+                    <select id="roleSelect"></select>
+                  </div>
+                  <div>
+                    <label>Periode</label>
+                    <input id="period" type="text" value="" placeholder="September 2025" />
+                  </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+                  <div>
+                    <label>Gaji Pokok (Rp)</label>
+                    <input id="baseSalary" type="number" value="3000000" />
+                  </div>
+                  <div>
+                    <label>Tunjangan (Rp)</label>
+                    <input id="allowance" type="number" value="500000" />
+                  </div>
+                </div>
+
+                <div style="margin-top:10px">
+                  <label>Unggah Rekap Kehadiran (Excel/CSV) — Opsional</label>
+                  <input id="attendanceFile" type="file" accept=".xlsx,.xls,.csv" />
+                  <div class="small">Format yang dianjurkan: <strong>Nama Pegawai | Hari Hadir | Total Hari Kerja</strong>.</div>
+                </div>
+
+                <div style="margin-top:10px;display:flex;gap:8px">
+                  <button id="saveEmp" class="btn">Simpan Pegawai</button>
+                  <button id="clearForm" class="btn ghost">Bersihkan</button>
+                </div>
+              </div>
+            </div>
+
+            <hr />
+
+            <div id="ratersArea"></div>
+
+            <div style="margin-top:12px">
+              <strong>Daftar Pegawai</strong>
+              <div style="margin-top:8px;overflow:auto;max-height:300px">
+                <table id="employeesTable">
+                  <thead><tr><th>Nama</th><th>Jabatan</th><th>Periode</th><th>Skor</th><th>Aksi</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <strong>Pratinjau Slip Gaji</strong>
+          <div id="slipPreview" class="small" style="margin-top:8px">Belum ada slip yang dihasilkan.</div>
+        </div>
+      </section>
+
+      <aside class="sidebar">
+        <div class="card">
+          <strong>Ringkasan & Kontrol</strong>
+          <div class="small" style="margin-top:8px">Total pegawai & skor rata-rata</div>
+          <div style="margin-top:8px"><div class="small">Total pegawai: <span id="totalEmp">0</span></div></div>
+          <div style="margin-top:8px"><div class="small">Skor rata-rata: <span id="avgScore">0.00</span></div></div>
+
+          <hr style="margin:12px 0" />
+          <div>
+            <strong>Bobot Aspek</strong>
+            <div class="small">Atur bobot aspek (harus 100%).</div>
+            <div id="weights" style="margin-top:8px"></div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button id="saveWeights" class="btn">Simpan Bobot</button>
+              <button id="resetWeights" class="btn ghost">Reset</button>
+            </div>
+          </div>
+
+          <hr style="margin:12px 0" />
+          <div>
+            <strong>Pengguna (Admin)</strong>
+            <div class="small">Hanya Admin yang dapat mengelola akun pengguna.</div>
+            <div style="margin-top:8px" id="userControls">
+              <div class="user-list" id="userList"></div>
+              <div style="display:flex;gap:8px;margin-top:8px">
+                <button id="btnCreateUser" class="btn ghost">Tambah Pengguna (Admin)</button>
+              </div>
+            </div>
+          </div>
+
+          <hr style="margin:12px 0" />
+          <div>
+            <strong>Ekspor & Project</strong>
+            <div class="small" style="margin-top:8px">Export data & slip ke Excel. Download project ZIP siap upload GitHub.</div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button id="exportAll" class="btn">Export Semua</button>
+              <button id="downloadZip" class="btn ghost">Download ZIP</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <footer>© SIPKADES — Sistem Informasi Penilaian Kinerja Aparatur Desa — Desa Keling</footer>
+  </div>
+
+  <!-- libs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
+<script>
+// SIPKADES v1.3 - Login/Register using LocalStorage, role based UI
+(() => {
+  // roles and positions
+  const roles = {
+    bumdes: {label:'BUMDes', logo:'logo_bumdes.png', positions:[ 'Direktur Utama','Sekretaris','Bendahara','Manager Unit','Bendahara Unit','Pengawas' ]},
+    pemdes: {label:'Pemdes', logo:'logo_desa.png', positions:[ 'Kepala Desa','Sekretaris Desa','Kasi','Kaur','Kasun','RT','RW','Tenaga IT' ]},
+    bpd: {label:'BPD', logo:'logo_desa.png', positions:[ 'Ketua BPD','Sekretaris BPD','Anggota BPD' ]}
+  };
+
+  const defaultWeights = {Disiplin:20, Produktivitas:25, Kompetensi:20, Kerjasama:15, Integritas:20};
+  const raters = [
+    {key:'atasan',label:'Atasan Langsung',weight:40},
+    {key:'rekan',label:'Rekan Sejawat',weight:20},
+    {key:'bawahan',label:'Bawahan',weight:20},
+    {key:'self',label:'Self Assessment',weight:20}
+  ];
+
+  const STORAGE_KEY = 'sipkades_v1.3_state';
+  let state = {users:[], currentUser:null, employees:[], weights: defaultWeights};
+
+  // DOM refs
+  const logoImg = document.getElementById('logoImg');
+  const loggedAs = document.getElementById('loggedAs');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const rolePill = document.getElementById('rolePill');
+  const panelTitle = document.getElementById('panelTitle');
+
+  const authArea = document.getElementById('authArea');
+  const loginCard = document.getElementById('loginCard');
+  const registerCard = document.getElementById('registerCard');
+  const loginUser = document.getElementById('loginUser');
+  const loginPass = document.getElementById('loginPass');
+  const doLogin = document.getElementById('doLogin');
+  const showRegister = document.getElementById('showRegister');
+  const hideRegister = document.getElementById('hideRegister');
+  const doRegister = document.getElementById('doRegister');
+  const regUser = document.getElementById('regUser');
+  const regPass = document.getElementById('regPass');
+  const regRole = document.getElementById('regRole');
+
+  const appMain = document.getElementById('appMain');
+  const roleSelect = document.getElementById('roleSelect');
+  const ratersArea = document.getElementById('ratersArea');
+  const employeesTable = document.querySelector('#employeesTable tbody');
+  const totalEmp = document.getElementById('totalEmp');
+  const avgScore = document.getElementById('avgScore');
+  const weightsArea = document.getElementById('weights');
+  const attendanceFile = document.getElementById('attendanceFile');
+  const slipPreview = document.getElementById('slipPreview');
+  const userList = document.getElementById('userList');
+  const btnCreateUser = document.getElementById('btnCreateUser');
+
+  // load / save state
+  function loadState(){ try{ const s = localStorage.getItem(STORAGE_KEY); if(s) state = JSON.parse(s); }catch(e){} }
+  function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+  // helper: simple hash password using SubtleCrypto (SHA-256) then hex
+  async function hashPassword(password){
+    const enc = new TextEncoder();
+    const data = enc.encode(password);
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    const arr = Array.from(new Uint8Array(hash));
+    return arr.map(b=>b.toString(16).padStart(2,'0')).join('');
+  }
+
+  // user utilities
+  async function createUser(username, password, role){
+    const exists = state.users.find(u=>u.username === username);
+    if(exists) throw new Error('Username sudah ada');
+    const hp = await hashPassword(password);
+    const user = {id: Date.now(), username, passwordHash: hp, role};
+    state.users.push(user); saveState(); return user;
+  }
+  function findUser(username){ return state.users.find(u=>u.username === username); }
+
+  async function initDefault(){
+    // if no users, create default admin: admin / admin123 (inform user to change)
+    if(!state.users || state.users.length === 0){
+      try{
+        await createUser('admin', 'admin123', 'admin');
+        console.log('Default admin created: admin / admin123');
+      }catch(e){ console.warn(e); }
+    }
+  }
+
+  // auth actions
+  doLogin.addEventListener('click', async ()=>{
+    const u = loginUser.value.trim();
+    const p = loginPass.value;
+    if(!u || !p){ alert('Isi username & password'); return; }
+    const user = findUser(u);
+    if(!user){ alert('Pengguna tidak ditemukan'); return; }
+    const hp = await hashPassword(p);
+    if(hp !== user.passwordHash){ alert('Password salah'); return; }
+    state.currentUser = {id:user.id, username:user.username, role:user.role};
+    saveState(); renderAppForUser();
+  });
+
+  showRegister.addEventListener('click', ()=>{
+    // only allow initial register if no users exist
+    if(state.users.length === 0){ registerCard.style.display = 'block'; loginCard.style.display='none'; }
+    else { alert('Pendaftaran hanya dapat dilakukan oleh Admin setelah akun Admin awal dibuat. Silakan hubungi Admin.'); }
+  });
+  hideRegister.addEventListener('click', ()=>{ registerCard.style.display='none'; loginCard.style.display='block'; });
+
+  doRegister.addEventListener('click', async ()=>{
+    const u = regUser.value.trim(); const p = regPass.value; const r = regRole.value;
+    if(!u || !p){ alert('Isi username & password'); return; }
+    try{
+      await createUser(u,p,r);
+      alert('Akun berhasil dibuat. Silakan login.');
+      regUser.value=''; regPass.value=''; regRole.value='bumdes';
+      registerCard.style.display='none'; loginCard.style.display='block';
+    }catch(e){
+      alert('Gagal membuat akun: ' + e.message);
+    }
+  });
+
+  logoutBtn.addEventListener('click', ()=>{ state.currentUser = null; saveState(); renderAppForUser(); });
+
+  // render app per role
+  function renderAppForUser(){
+    loadState();
+    if(!state.currentUser){ // show login
+      authArea.style.display = 'block'; appMain.style.display='none'; logoutBtn.style.display='none';
+      document.getElementById('loginCard').style.display = 'block'; document.getElementById('registerCard').style.display='none';
+      loggedAs.textContent = 'Belum login';
+      logoImg.src = 'logo_bumdes.png';
+      return;
+    }
+    // show main app
+    authArea.style.display = 'none'; appMain.style.display='block'; logoutBtn.style.display='inline-block';
+    loggedAs.textContent = 'Masuk sebagai: ' + state.currentUser.username + ' (' + state.currentUser.role + ')';
+    const roleKey = state.currentUser.role;
+    const roleObj = roles[roleKey] || roles['pemdes'];
+    logoImg.src = roleObj.logo;
+    rolePill.textContent = roleObj.label;
+    panelTitle.textContent = 'Panel: ' + roleObj.label;
+    // show/hide user controls depending on admin
+    document.getElementById('userControls').style.display = (state.currentUser.role === 'admin') ? 'block' : 'none';
+    // populate roleSelect options for posting employees depending on role
+    roleSelect.innerHTML = roleObj.positions.map(p=>`<option>${p}</option>`).join('');
+    // render weights, raters, employees
+    renderWeights(); renderRaterForms(); renderEmployees();
+    renderUserList();
+  }
+
+  function renderWeights(){
+    weightsArea.innerHTML = '';
+    const ws = state.weights || defaultWeights;
+    for(const k of Object.keys(ws)){
+      const row = document.createElement('div');
+      row.style.display='flex';row.style.justifyContent='space-between';row.style.alignItems='center';row.style.marginBottom='8px';
+      row.innerHTML = `<div style="flex:1"><label>${k}</label><div class="small">Bobot aspek</div></div><div style="width:120px"><input data-weight-key="${k}" type="number" min="0" max="100" value="${ws[k]}" /></div>`;
+      weightsArea.appendChild(row);
+    }
+  }
+  document.getElementById('saveWeights').addEventListener('click', ()=>{
+    const inputs = weightsArea.querySelectorAll('input[data-weight-key]');
+    let sum = 0; const neww = {};
+    inputs.forEach(i=>{ const k=i.getAttribute('data-weight-key'); neww[k]=Number(i.value); sum+=Number(i.value); });
+    if(sum !== 100){ alert('Total bobot harus 100% (saat ini: ' + sum + '%)'); return; }
+    state.weights = neww; saveState(); renderRaterForms(); alert('Bobot tersimpan.'); renderEmployees();
+  });
+  document.getElementById('resetWeights').addEventListener('click', ()=>{ state.weights = Object.assign({}, defaultWeights); saveState(); renderWeights(); renderRaterForms(); });
+
+  function renderRaterForms(){
+    ratersArea.innerHTML = '';
+    for(const rt of raters){
+      const card = document.createElement('div');
+      card.className='card';
+      card.style.marginTop='10px';
+      card.innerHTML = `<strong>${rt.label} — bobot internal: ${rt.weight}%</strong><div class="small" style="margin-bottom:8px">Isi skor tiap aspek (1–5)</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">${Object.keys(state.weights||defaultWeights).map(k=>`<div><label>${k}</label><input data-rater="${rt.key}" data-aspect="${k}" type="number" min="1" max="5" value="5" /></div>`).join('')}</div><div style="margin-top:8px"><label>Komentar / Bukti</label><textarea data-rater="${rt.key}" placeholder="Catatan / link bukti (opsional)"></textarea></div>`;
+      ratersArea.appendChild(card);
+    }
+  }
+
+  // attendance parsing
+  function parseAttendanceFile(file){
+    return new Promise((resolve,reject)=>{
+      const reader = new FileReader();
+      reader.onload = (e)=>{
+        try{
+          const data = e.target.result;
+          const wb = XLSX.read(data, {type:'binary'});
+          const sheet = wb.Sheets[wb.SheetNames[0]];
+          const json = XLSX.utils.sheet_to_json(sheet, {defval:''});
+          const rows = json.map(r=>{
+            const keys = Object.keys(r);
+            const obj = {};
+            for(const k of keys){
+              const lk = k.toString().toLowerCase();
+              if(lk.includes('nama')) obj.name = r[k];
+              else if(lk.includes('hadir') || lk.includes('hari')) obj.hadir = r[k];
+              else if(lk.includes('total')) obj.total = r[k];
+            }
+            return obj;
+          }).filter(r=>r.name);
+          resolve(rows);
+        }catch(err){
+          reject(err);
+        }
+      };
+      reader.onerror = (err)=>reject(err);
+      reader.readAsBinaryString(file);
+    });
+  }
+
+  // save employee
+  document.getElementById('saveEmp').addEventListener('click', async ()=>{
+    const name = document.getElementById('empName').value.trim();
+    if(!name){ alert('Nama pegawai harus diisi.'); return; }
+    const emp = {
+      id: Date.now(),
+      name,
+      role: document.getElementById('roleSelect').value,
+      period: document.getElementById('period').value,
+      baseSalary: Number(document.getElementById('baseSalary').value)||0,
+      allowance: Number(document.getElementById('allowance').value)||0,
+      raters: {},
+      attendance: null
     };
-
-    function saveState(){localStorage.setItem('sipkades',JSON.stringify(state))}
-    function loadState(){const d=localStorage.getItem('sipkades');if(d){state=JSON.parse(d)}}
-    function toggleRegister(){document.getElementById('loginCard').style.display=(document.getElementById('loginCard').style.display==='none')?'block':'none';document.getElementById('registerCard').style.display=(document.getElementById('registerCard').style.display==='none')?'block':'none'}
-
-    function renderAppForUser(){
-      loadState();
-      if(!state.currentUser){
-        authArea.style.display='block'; appMain.style.display='none'; logoutBtn.style.display='none';
-        document.getElementById('loginCard').style.display='block';
-        document.getElementById('registerCard').style.display='none';
-        loggedAs.textContent='Belum login';
-        logoImg.src='logo_desa.png'; // default logo Pemdes
-        return;
-      }
-      authArea.style.display='none'; appMain.style.display='block'; logoutBtn.style.display='inline-block';
-      loggedAs.textContent='Masuk sebagai: '+state.currentUser.username+' ('+state.currentUser.role+')';
-      const roleKey=state.currentUser.role; const roleObj=roles[roleKey]||roles['pemdes'];
-      logoImg.src=roleObj.logo;
-      rolePill.textContent=roleObj.label; panelTitle.textContent='Panel: '+roleObj.label;
-      document.getElementById('userControls').style.display=(state.currentUser.role==='admin')?'block':'none';
+    // collect rater scores
+    for(const rt of raters){
+      const rObj = {scores:{}, comment:''};
+      const inputs = document.querySelectorAll(`input[data-rater="${rt.key}"]`);
+      inputs.forEach(inp=>{ const aspect = inp.getAttribute('data-aspect'); rObj.scores[aspect] = Number(inp.value)||1; });
+      const ta = document.querySelector(`textarea[data-rater="${rt.key}"]`);
+      rObj.comment = ta ? ta.value : '';
+      emp.raters[rt.key] = rObj;
     }
 
-    loginBtn.onclick=()=>{
-      const u=loginUser.value,p=loginPass.value;
-      const found=state.users.find(x=>x.username===u&&x.password===p);
-      if(found){state.currentUser=found;saveState();renderAppForUser();}else{alert('Login gagal');}
-    };
-    registerBtn.onclick=()=>{
-      const u=regUser.value,p=regPass.value,r=regRole.value;
-      if(!u||!p)return alert('Lengkapi data');
-      if(state.users.find(x=>x.username===u))return alert('User sudah ada');
-      const newUser={username:u,password:p,role:r};state.users.push(newUser);state.currentUser=newUser;saveState();renderAppForUser();
-    };
-    logoutBtn.onclick=()=>{state.currentUser=null;saveState();renderAppForUser()}
+    // handle attendance file if present
+    const file = attendanceFile.files[0];
+    if(file){
+      try{
+        const rows = await parseAttendanceFile(file);
+        const found = rows.find(r=> (r.name||'').toString().trim().toLowerCase() === name.toLowerCase());
+        if(found && found.hadir!==undefined && found.total!==undefined){
+          const hadir = Number(found.hadir)||0; const total = Number(found.total)||1;
+          emp.attendance = {hadir, total, percent: Math.round((hadir/total)*100)};
+        }
+      }catch(e){
+        alert('Gagal membaca file absen. Pastikan format xlsx/xls/csv.');
+      }
+    }
 
+    // add to state and persist
+    state.employees.push(emp);
+    saveState();
+    clearForm();
+    renderEmployees();
+    alert('Pegawai disimpan.');
+  });
+
+  document.getElementById('clearForm').addEventListener('click', clearForm);
+  function clearForm(){ document.getElementById('empName').value=''; document.getElementById('baseSalary').value=3000000; document.getElementById('allowance').value=500000; document.getElementById('period').value=''; attendanceFile.value=''; renderRaterForms(); }
+
+  function attendanceToScore(percent){
+    if(percent >= 95) return 5;
+    if(percent >= 90) return 4;
+    if(percent >= 80) return 3;
+    if(percent >= 70) return 2;
+    return 1;
+  }
+
+  function computeScore(emp){
+    const ws = state.weights || defaultWeights;
+    const raterResults = [];
+    for(const rt of raters){
+      const data = emp.raters[rt.key];
+      if(!data) continue;
+      let sumAspect = 0; let totalW = 0;
+      for(const [aspect,w] of Object.entries(ws)){
+        let val = (data.scores && data.scores[aspect]) ? data.scores[aspect] : 1;
+        if(aspect === 'Disiplin' && emp.attendance && typeof emp.attendance.percent === 'number'){
+          val = attendanceToScore(emp.attendance.percent);
+        }
+        sumAspect += val * (w/100); totalW += (w/100);
+      }
+      const rScore = sumAspect / totalW;
+      raterResults.push({score: rScore, weight: rt.weight});
+    }
+    if(raterResults.length === 0) return 0;
+    let agg = 0; let tw = 0;
+    for(const rr of raterResults){ agg += rr.score * (rr.weight/100); tw += (rr.weight/100); }
+    const final = tw ? (agg / tw) : 0;
+    return Number(final.toFixed(2));
+  }
+
+  function renderEmployees(){
+    employeesTable.innerHTML = '';
+    for(const e of (state.employees||[])){
+      const tr = document.createElement('tr');
+      const score = computeScore(e);
+      tr.innerHTML = `<td>${e.name}</td><td>${e.role}</td><td>${e.period||''}</td><td>${score}</td><td><button class="btn ghost" data-id="${e.id}" onclick="window.sipkades.openDetail(${e.id})">Lihat</button></td>`;
+      employeesTable.appendChild(tr);
+    }
+    totalEmp.textContent = (state.employees||[]).length;
+    const arr = (state.employees||[]).map(e=>computeScore(e)); const avg = arr.length? (arr.reduce((a,b)=>a+b,0)/arr.length):0;
+    avgScore.textContent = avg.toFixed(2);
+  }
+
+  // expose openDetail for inline onclick usage
+  window.sipkades = {
+    openDetail: function(id){
+      const emp = (state.employees||[]).find(x=>x.id===id); if(!emp) return;
+      let rows = '';
+      for(const [rk,rv] of Object.entries(emp.raters || {})){
+        rows += `<tr><td>${raters.find(r=>r.key===rk).label}</td><td>${Object.entries(rv.scores).map(([a,s])=>a+': '+s).join('<br>')}</td><td>${rv.comment||''}</td></tr>`;
+      }
+      const score = computeScore(emp);
+      const slipHtml = `<div style="padding:12px"><h3 style="margin:0">SIPKADES — Desa Keling</h3><div class="small">Slip Gaji — Periode: ${emp.period||''}</div><hr /><table style="width:100%;font-size:14px"><tr><td><strong>Nama</strong></td><td>${emp.name}</td></tr><tr><td><strong>Jabatan</strong></td><td>${emp.role}</td></tr><tr><td><strong>Gaji Pokok</strong></td><td>Rp ${emp.baseSalary.toLocaleString('id-ID')}</td></tr><tr><td><strong>Tunjangan</strong></td><td>Rp ${emp.allowance.toLocaleString('id-ID')}</td></tr><tr><td><strong>Skor Kinerja</strong></td><td>${score}</td></tr></table><hr /><div class="small">Rincian penilaian:</div><table style="width:100%;margin-top:8px">${rows}</table><div style="margin-top:12px"><strong>Catatan:</strong><div class="small">Slip ini dihitung dari penilaian 360° dan data kehadiran (jika diunggah).</div></div></div>`;
+      showModal(slipHtml, ()=>generateSlip([emp]));
+    }
+  };
+
+  function showModal(innerHtml, onDownload){
+    const modal = document.createElement('div'); modal.className='modal';
+    modal.innerHTML = `<div class="card"><div style="padding:12px">${innerHtml}<div style="text-align:right;margin-top:12px"><button id="dlSlip" class="btn">Download Slip (Excel)</button><button id="closeM" class="btn ghost">Tutup</button></div></div></div>`;
+    document.body.appendChild(modal);
+    modal.querySelector('#closeM').addEventListener('click', ()=>modal.remove());
+    modal.querySelector('#dlSlip').addEventListener('click', ()=>{ if(onDownload) onDownload(); modal.remove(); });
+  }
+
+  // export functions
+  function exportEmployees(list){
+    const wb = XLSX.utils.book_new();
+    const data = list.map(e=>{
+      const obj = {Nama:e.name, Jabatan:e.role, Periode:e.period, GajiPokok:e.baseSalary, Tunjangan:e.allowance, Skor:computeScore(e)};
+      if(e.attendance) obj.Absen = `${e.attendance.hadir}/${e.attendance.total} (${e.attendance.percent}%)`;
+      for(const rt of raters){ const rv = e.raters[rt.key]; if(rv){ for(const [a,v] of Object.entries(rv.scores)){ obj[`${rt.label} - ${a}`]=v } obj[`${rt.label} - Komentar`]=rv.comment||'' } }
+      return obj;
+    });
+    const ws = XLSX.utils.json_to_sheet(data);
+    XLSX.utils.book_append_sheet(wb, ws, 'DataPegawai');
+    for(const e of list){
+      const slip = [['SIPKADES — Desa Keling'],['Slip Gaji'],[],['Nama', e.name],['Jabatan', e.role],['Periode', e.period||''],['Gaji Pokok', e.baseSalary],['Tunjangan', e.allowance],['Skor Kinerja', computeScore(e)],[],['Rincian:']];
+      for(const rt of raters){ const rv = e.raters[rt.key]; if(rv){ slip.push([rt.label]); for(const [a,v] of Object.entries(rv.scores)){ slip.push([a, v]) } if(rv.comment) slip.push(['Komentar', rv.comment]); slip.push([]); } }
+      if(e.attendance) slip.push(['Absensi', `${e.attendance.hadir}/${e.attendance.total} (${e.attendance.percent}%)`]);
+      slip.push([]); slip.push(['Total Diterima', e.baseSalary + e.allowance]);
+      const ws2 = XLSX.utils.aoa_to_sheet(slip);
+      const name = e.name.replace(/[^a-z0-9]/gi,'_').substring(0,20) || 'pegawai';
+      XLSX.utils.book_append_sheet(wb, ws2, 'Slip_'+name);
+    }
+    const wbout = XLSX.write(wb,{bookType:'xlsx',type:'array'});
+    const blob = new Blob([wbout],{type:'application/octet-stream'});
+    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'SIPKADES_Data_'+(new Date()).toISOString().slice(0,10)+'.xlsx'; a.click(); URL.revokeObjectURL(url);
+  }
+
+  document.getElementById('exportAll').addEventListener('click', ()=>{ if(!(state.employees||[]).length){ alert('Belum ada pegawai.'); return; } exportEmployees(state.employees); });
+
+  document.getElementById('downloadZip').addEventListener('click', async ()=>{
+    const zip = new JSZip();
+    const html = `<!doctype html>\n` + document.documentElement.outerHTML;
+    zip.file('index.html', html);
+    zip.file('README.md', '# SIPKADES v1.3\\nExport generated from browser (trimmed index).');
+    alert('ZIP dibuat dan diunduh (berisi index.html).');
+    const content = await zip.generateAsync({type:'blob'});
+    const url = URL.createObjectURL(content);
+    const a = document.createElement('a'); a.href = url; a.download = 'SIPKADES_v1.3.zip'; a.click(); URL.revokeObjectURL(url);
+  });
+
+  function generateSlip(list){ exportEmployees(list); }
+
+  // User management (Admin)
+  btnCreateUser.addEventListener('click', ()=>{
+    if(!(state.currentUser && state.currentUser.role === 'admin')){ alert('Hanya Admin yang dapat membuat pengguna.'); return; }
+    const username = prompt('Masukkan username baru (misal: bumdes01):'); if(!username) return;
+    const password = prompt('Masukkan password untuk user '+username+':'); if(!password) return;
+    const role = prompt('Masukkan role (bumdes/pemdes/bpd/admin):','bumdes'); if(!role) return;
+    createUser(username, password, role).then(u=>{ alert('Pengguna dibuat: ' + u.username); renderUserList(); }).catch(e=>alert('Gagal: '+e.message));
+  });
+
+  function renderUserList(){
+    userList.innerHTML = '';
+    for(const u of state.users || []){
+      const div = document.createElement('div');
+      div.style.display='flex'; div.style.justifyContent='space-between'; div.style.alignItems='center'; div.style.padding='6px 0'; div.style.borderBottom='1px solid #f1f5f9';
+      div.innerHTML = `<div><strong>${u.username}</strong><div class="small">Role: ${u.role}</div></div><div style="display:flex;gap:6px"><button class="btn ghost" data-usr="${u.username}">Hapus</button></div>`;
+      userList.appendChild(div);
+      div.querySelector('button').addEventListener('click', ()=>{ if(confirm('Hapus pengguna '+u.username+'?')){ state.users = state.users.filter(x=>x.username!==u.username); saveState(); renderUserList(); } });
+    }
+  }
+
+  // init default admin if none exist
+  async function bootstrap(){
+    loadState();
+    if(!state.users || state.users.length===0){
+      try{ await createUser('admin','admin123','admin'); alert('Akun admin default dibuat: username=admin password=admin123. Silakan login dan ubah password.'); }catch(e){ console.warn(e); }
+      saveState();
+    }
     renderAppForUser();
-  </script>
+  }
+
+  // expose for debugging
+  window._SIPKADES_STATE = state;
+
+  bootstrap();
+
+})();
+</script>
+
 </body>
 </html>
